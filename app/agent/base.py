@@ -132,6 +132,8 @@ class BaseAgent(BaseModel, ABC):
             self.update_memory("user", request)
 
         results: List[str] = []
+        logger.info(f"[DEBUG] Starting create SANDBOX_CLIENT")
+        await SANDBOX_CLIENT.create()
         async with self.state_context(AgentState.RUNNING):
             while (
                 self.current_step < self.max_steps and self.state != AgentState.FINISHED
@@ -150,7 +152,7 @@ class BaseAgent(BaseModel, ABC):
                 self.current_step = 0
                 self.state = AgentState.IDLE
                 results.append(f"Terminated: Reached max steps ({self.max_steps})")
-        await SANDBOX_CLIENT.cleanup()
+        # await SANDBOX_CLIENT.cleanup()
         return "\n".join(results) if results else "No steps executed"
 
     @abstractmethod

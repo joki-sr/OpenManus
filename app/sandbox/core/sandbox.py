@@ -13,6 +13,7 @@ from docker.models.containers import Container
 from app.config import SandboxSettings
 from app.sandbox.core.exceptions import SandboxTimeoutError
 from app.sandbox.core.terminal import AsyncDockerizedTerminal
+from app.logger import logger
 
 
 class DockerSandbox:
@@ -56,6 +57,7 @@ class DockerSandbox:
             docker.errors.APIError: If Docker API call fails.
             RuntimeError: If container creation or startup fails.
         """
+        logger.info("[DEBUG] sandbox.py:DockerSandbox:create():Starting Docker sandbox creation...")
         try:
             # Prepare container config
             host_config = self.client.api.create_host_config(
@@ -95,7 +97,7 @@ class DockerSandbox:
                 # Ensure Python output is not buffered
             )
             await self.terminal.init()
-
+            logger.info("[DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.")
             return self
 
         except Exception as e:
@@ -217,11 +219,15 @@ class DockerSandbox:
                 await self.run_command(f"mkdir -p {parent_dir}")
 
             # Prepare file data
+            # 把要写的文件内容打包成一个 tar 格式的字节流，
+            # 例如把文件名 123hello.py 和内容一起封装成内存中的一个小型 tar 包
+            # （因为 Docker 的文件写接口只接受 tar 流）
             tar_stream = await self._create_tar_stream(
                 os.path.basename(path), content.encode("utf-8")
             )
 
             # Write file
+            # 把刚刚的 tar 流解压到容器中的 parent_dir
             await asyncio.to_thread(
                 self.container.put_archive, parent_dir or "/", tar_stream
             )
@@ -446,6 +452,7 @@ class DockerSandbox:
                     errors.append(f"Container remove error: {e}")
                 finally:
                     self.container = None
+                    logger.info("[DEBUG] sandbox.py:DockerSandbox:cleanup():Finish Docker sandbox cleanup.")
 
         except Exception as e:
             errors.append(f"General cleanup error: {e}")

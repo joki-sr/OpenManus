@@ -3,6 +3,7 @@ from typing import Dict, Optional, Protocol
 
 from app.config import SandboxSettings
 from app.sandbox.core.sandbox import DockerSandbox
+from app.logger import logger
 
 
 class SandboxFileOperations(Protocol):
@@ -104,6 +105,27 @@ class LocalSandboxClient(BaseSandboxClient):
         Raises:
             RuntimeError: If sandbox creation fails.
         """
+        # Respect global configuration: if sandbox usage is disabled, skip creating a Docker sandbox.
+        try:
+            from app.config import config as _app_config
+
+            use_sandbox = (
+                (config.use_sandbox if config is not None else None)
+                if hasattr(config, "use_sandbox")
+                else None
+            )
+            # CLI override or provided config takes precedence; otherwise use global config
+            if use_sandbox is None:
+                use_sandbox = getattr(_app_config._config.sandbox, "use_sandbox", True)
+        except Exception:
+            # If we cannot access global config for some reason, default to enabling sandbox
+            use_sandbox = True
+
+        if not use_sandbox:
+            logger.info("[DEBUG] Sandbox disabled by configuration — skipping Docker sandbox creation.")
+            return
+
+        logger.info("[DEBUG] Starting create docker sandbox...")
         self.sandbox = DockerSandbox(config, volume_bindings)
         await self.sandbox.create()
 

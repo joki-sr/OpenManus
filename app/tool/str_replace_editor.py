@@ -125,6 +125,7 @@ class StrReplaceEditor(BaseTool):
     ) -> str:
         """Execute a file operation command."""
         # Get the appropriate file operator
+        # sandbox/local operator
         operator = self._get_operator()
 
         # Validate path and command combination
