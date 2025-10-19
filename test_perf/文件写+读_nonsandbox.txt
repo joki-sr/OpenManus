@@ -1,0 +1,151 @@
+INFO     [browser_use] BrowserUse logging setup complete with level info
+INFO     [root] Anonymized telemetry enabled. See https://docs.browser-use.com/development/telemetry for more information.
+[2m2025-10-16T11:49:54.035766Z[0m [[32m[1minfo     [0m] [1mInitializing Daytona sandbox configuration[0m [36mfilename[0m=[35msandbox.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m19[0m
+[2m2025-10-16T11:49:54.035916Z[0m [[32m[1minfo     [0m] [1mDaytona API key configured successfully[0m [36mfilename[0m=[35msandbox.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m27[0m
+[2m2025-10-16T11:49:54.035985Z[0m [[32m[1minfo     [0m] [1mDaytona server URL set to: https://app.daytona.io/api[0m [36mfilename[0m=[35msandbox.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m32[0m
+[2m2025-10-16T11:49:54.036023Z[0m [[32m[1minfo     [0m] [1mDaytona target set to: us     [0m [36mfilename[0m=[35msandbox.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m37[0m
+[2m2025-10-16T11:49:54.036736Z[0m [[32m[1minfo     [0m] [1mDaytona client initialized    [0m [36mfilename[0m=[35msandbox.py[0m [36mfunc_name[0m=[35m<module>[0m [36mlineno[0m=[35m42[0m
+Enter your prompt: 
+---stderr---
+/home/zhangsiyi/AgenticAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:345: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+/home/zhangsiyi/AgenticAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:345: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+2025-10-16 19:49:54.509 | WARNING  | __main__:main:51 - Processing your request...
+2025-10-16 19:49:54.510 | INFO     | app.agent.base:run:135 - [DEBUG] Starting create SANDBOX_CLIENT
+2025-10-16 19:49:54.510 | INFO     | app.sandbox.client:create:128 - [DEBUG] Starting create docker sandbox...
+2025-10-16 19:49:54.517 | INFO     | app.sandbox.core.sandbox:create:60 - [DEBUG] sandbox.py:DockerSandbox:create():Starting Docker sandbox creation...
+2025-10-16 19:49:54.800 | INFO     | app.sandbox.core.sandbox:create:100 - [DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.
+2025-10-16 19:49:54.800 | INFO     | app.agent.base:run:142 - Executing step 1/10
+2025-10-16 19:50:00.573 | INFO     | app.llm:update_token_count:243 - Token usage: Input=1778, Completion=186, Cumulative Input=1778, Cumulative Completion=186, Total=1964, Cumulative Total=1964
+2025-10-16 19:50:00.573 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+我将使用str_replace_editor工具来创建这10个文件，每创建一个文件后立即查看其内容。让我开始：
+
+2025-10-16 19:50:00.574 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:00.574 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:00.574 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "create", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test1.txt", "file_text": "hello1"}
+2025-10-16 19:50:00.574 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:00.574 | INFO     | app.sandbox.client:create:128 - [DEBUG] Starting create docker sandbox...
+2025-10-16 19:50:00.580 | INFO     | app.sandbox.core.sandbox:create:60 - [DEBUG] sandbox.py:DockerSandbox:create():Starting Docker sandbox creation...
+2025-10-16 19:50:00.832 | INFO     | app.sandbox.core.sandbox:create:100 - [DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.
+2025-10-16 19:50:01.036 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/test1.txt
+2025-10-16 19:50:01.036 | INFO     | app.agent.base:run:142 - Executing step 2/10
+2025-10-16 19:50:05.569 | INFO     | app.llm:update_token_count:243 - Token usage: Input=1972, Completion=124, Cumulative Input=3750, Cumulative Completion=310, Total=2096, Cumulative Total=4060
+2025-10-16 19:50:05.569 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在我来查看第一个文件的内容：
+
+2025-10-16 19:50:05.570 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:05.570 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:05.570 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "view", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test1.txt"}
+2025-10-16 19:50:05.570 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:05.874 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+Here's the result of running `cat -n` on /home/zhangsiyi/AgenticAI/OpenManus/workspace/test1.txt:
+     1	hello1
+
+2025-10-16 19:50:05.874 | INFO     | app.agent.base:run:142 - Executing step 3/10
+2025-10-16 19:50:10.462 | INFO     | app.llm:update_token_count:243 - Token usage: Input=2151, Completion=134, Cumulative Input=5901, Cumulative Completion=444, Total=2285, Cumulative Total=6345
+2025-10-16 19:50:10.462 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在创建第二个文件：
+
+2025-10-16 19:50:10.462 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:10.462 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:10.462 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "create", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test2.txt", "file_text": "hello2"}
+2025-10-16 19:50:10.462 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:10.665 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/test2.txt
+2025-10-16 19:50:10.666 | INFO     | app.agent.base:run:142 - Executing step 4/10
+2025-10-16 19:50:13.485 | INFO     | app.llm:update_token_count:243 - Token usage: Input=2324, Completion=92, Cumulative Input=8225, Cumulative Completion=536, Total=2416, Cumulative Total=8761
+2025-10-16 19:50:13.486 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在查看第二个文件的内容：
+
+2025-10-16 19:50:13.486 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:13.486 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:13.486 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "view", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test2.txt"}
+2025-10-16 19:50:13.486 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:13.790 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+Here's the result of running `cat -n` on /home/zhangsiyi/AgenticAI/OpenManus/workspace/test2.txt:
+     1	hello2
+
+2025-10-16 19:50:13.790 | INFO     | app.agent.base:run:142 - Executing step 5/10
+2025-10-16 19:50:16.245 | INFO     | app.llm:update_token_count:243 - Token usage: Input=2502, Completion=120, Cumulative Input=10727, Cumulative Completion=656, Total=2622, Cumulative Total=11383
+2025-10-16 19:50:16.245 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+
+现在创建第三个文件：
+
+2025-10-16 19:50:16.245 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:16.245 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:16.245 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "create", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test3.txt", "file_text": "hello3"}
+2025-10-16 19:50:16.245 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:16.449 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/test3.txt
+2025-10-16 19:50:16.449 | INFO     | app.agent.base:run:142 - Executing step 6/10
+2025-10-16 19:50:19.595 | INFO     | app.llm:update_token_count:243 - Token usage: Input=2675, Completion=96, Cumulative Input=13402, Cumulative Completion=752, Total=2771, Cumulative Total=14154
+2025-10-16 19:50:19.595 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在查看第三个文件的内容：
+
+2025-10-16 19:50:19.595 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:19.595 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:19.595 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "view", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test3.txt"}
+2025-10-16 19:50:19.595 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:19.899 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+Here's the result of running `cat -n` on /home/zhangsiyi/AgenticAI/OpenManus/workspace/test3.txt:
+     1	hello3
+
+2025-10-16 19:50:19.899 | INFO     | app.agent.base:run:142 - Executing step 7/10
+2025-10-16 19:50:23.520 | INFO     | app.llm:update_token_count:243 - Token usage: Input=2853, Completion=122, Cumulative Input=16255, Cumulative Completion=874, Total=2975, Cumulative Total=17129
+2025-10-16 19:50:23.520 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在创建第四个文件：
+
+2025-10-16 19:50:23.520 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:23.520 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:23.520 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "create", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test4.txt", "file_text": "hello4"}
+2025-10-16 19:50:23.520 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:23.724 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/test4.txt
+2025-10-16 19:50:23.724 | INFO     | app.agent.base:run:142 - Executing step 8/10
+2025-10-16 19:50:27.138 | INFO     | app.llm:update_token_count:243 - Token usage: Input=3027, Completion=103, Cumulative Input=19282, Cumulative Completion=977, Total=3130, Cumulative Total=20259
+2025-10-16 19:50:27.138 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在查看第四个文件的内容：
+
+2025-10-16 19:50:27.138 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:27.139 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:27.139 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "view", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test4.txt"}
+2025-10-16 19:50:27.139 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:27.443 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+Here's the result of running `cat -n` on /home/zhangsiyi/AgenticAI/OpenManus/workspace/test4.txt:
+     1	hello4
+
+2025-10-16 19:50:27.443 | INFO     | app.agent.base:run:142 - Executing step 9/10
+2025-10-16 19:50:31.154 | INFO     | app.llm:update_token_count:243 - Token usage: Input=3206, Completion=118, Cumulative Input=22488, Cumulative Completion=1095, Total=3324, Cumulative Total=23583
+2025-10-16 19:50:31.154 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在创建第五个文件：
+
+2025-10-16 19:50:31.154 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:31.154 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:31.154 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "create", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test5.txt", "file_text": "hello5"}
+2025-10-16 19:50:31.154 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:31.358 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/test5.txt
+2025-10-16 19:50:31.358 | INFO     | app.agent.base:run:142 - Executing step 10/10
+2025-10-16 19:50:33.023 | INFO     | app.llm:update_token_count:243 - Token usage: Input=3380, Completion=49, Cumulative Input=25868, Cumulative Completion=1144, Total=3429, Cumulative Total=27012
+2025-10-16 19:50:33.023 | INFO     | app.agent.toolcall:think:81 - ✨ Manus's thoughts: 
+现在查看第五个文件的内容：
+
+2025-10-16 19:50:33.023 | INFO     | app.agent.toolcall:think:82 - 🛠️ Manus selected 1 tools to use
+2025-10-16 19:50:33.023 | INFO     | app.agent.toolcall:think:86 - 🧰 Tools being prepared: ['str_replace_editor']
+2025-10-16 19:50:33.023 | INFO     | app.agent.toolcall:think:89 - 🔧 Tool arguments: {"command": "view", "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/test5.txt"}
+2025-10-16 19:50:33.023 | INFO     | app.agent.toolcall:execute_tool:180 - 🔧 Activating tool: 'str_replace_editor'...
+2025-10-16 19:50:33.327 | INFO     | app.agent.toolcall:act:150 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
+Here's the result of running `cat -n` on /home/zhangsiyi/AgenticAI/OpenManus/workspace/test5.txt:
+     1	hello5
+
+2025-10-16 19:50:33.328 | INFO     | app.tool.mcp:disconnect:194 - Disconnected from all MCP servers
+2025-10-16 19:50:33.328 | INFO     | __main__:main:53 - Request processing completed.
+
+---returncode---
+0
+---duration---
+45.76600670814514

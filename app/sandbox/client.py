@@ -85,11 +85,28 @@ class BaseSandboxClient(ABC):
 
 
 class LocalSandboxClient(BaseSandboxClient):
-    """Local sandbox client implementation."""
+    _instance = None
+    _lock = None  # 我们会在 __new__ 中初始化这个锁
+
+    def __new__(cls):
+        if cls._instance is None:
+            import asyncio
+            cls._instance = super(LocalSandboxClient, cls).__new__(cls)
+            cls._lock = asyncio.Lock()  # 创建一个异步锁以确保线程安全
+        return cls._instance
 
     def __init__(self):
         """Initializes local sandbox client."""
-        self.sandbox: Optional[DockerSandbox] = None
+        # 只在第一次初始化时设置 sandbox
+        if not hasattr(self, 'sandbox'):
+            self.sandbox: Optional[DockerSandbox] = None
+
+    @classmethod
+    async def get_instance(cls) -> 'LocalSandboxClient':
+        """Get or create the singleton instance."""
+        if cls._instance is None:
+            cls._instance = create_sandbox_client()
+        return cls._instance
 
     async def create(
         self,
@@ -105,6 +122,15 @@ class LocalSandboxClient(BaseSandboxClient):
         Raises:
             RuntimeError: If sandbox creation fails.
         """
+        """Creates a sandbox with proper locking."""
+        if self._lock is None:
+            import asyncio
+            self._lock = asyncio.Lock()
+
+        async with self._lock:  # 使用异步锁确保并发安全
+            if self.sandbox is not None:
+                return  # 如果已经创建了，直接返回
+
         # Respect global configuration: if sandbox usage is disabled, skip creating a Docker sandbox.
         try:
             from app.config import config as _app_config
@@ -212,10 +238,10 @@ class LocalSandboxClient(BaseSandboxClient):
 
 
 def create_sandbox_client() -> LocalSandboxClient:
-    """Creates a sandbox client.
+    """Creates a SINGLETON sandbox client.
 
     Returns:
-        LocalSandboxClient: Sandbox client instance.
+        LocalSandboxClient: SINGLETON Sandbox client instance.
     """
     return LocalSandboxClient()
 
