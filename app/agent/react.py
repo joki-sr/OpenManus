@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import time
 from typing import Optional
 
 from pydantic import Field
@@ -6,6 +7,7 @@ from pydantic import Field
 from app.agent.base import BaseAgent
 from app.llm import LLM
 from app.schema import AgentState, Memory
+from app.logger import logger
 
 
 class ReActAgent(BaseAgent, ABC):
@@ -32,7 +34,16 @@ class ReActAgent(BaseAgent, ABC):
 
     async def step(self) -> str:
         """Execute a single step: think and act."""
+        logger.info(f"[Profiling] Think starting")
+        t1 = time.time()
         should_act = await self.think()
+        logger.info(f"[Profiling] Think completed")
+        logger.info(f"[Profiling] Think completed in {time.time()-t1:.6f}s")
         if not should_act:
             return "Thinking complete - no action needed"
-        return await self.act()
+        logger.info(f"[Profiling] Act starting")
+        t2 = time.time()
+        ret = await self.act()
+        logger.info(f"[Profiling] Act completed")
+        logger.info(f"[Profiling] Act completed in {time.time()-t2:.6f}s")
+        return ret

@@ -1,3 +1,5 @@
+
+import time
 from typing import Dict, List, Optional
 
 from pydantic import Field, model_validator
@@ -25,7 +27,7 @@ class Manus(ToolCallAgent):
     next_step_prompt: str = NEXT_STEP_PROMPT
 
     max_observe: int = 10000
-    max_steps: int = 10
+    max_steps: int = 15
 
     # MCP clients for remote tool access
     mcp_clients: MCPClients = Field(default_factory=MCPClients)
@@ -139,9 +141,13 @@ class Manus(ToolCallAgent):
 
     async def think(self) -> bool:
         """Process current state and decide next actions with appropriate context."""
+        logger.info("[Profiling] Manus.think(): enter")
+        t_start = time.time()
         if not self._initialized:
+            logger.info("[Profiling] Manus.think(): initializing MCP servers...")
             await self.initialize_mcp_servers()
             self._initialized = True
+            logger.info("[Profiling] Manus.think(): MCP servers initialized.")
 
         original_prompt = self.next_step_prompt
         recent_messages = self.memory.messages[-3:] if self.memory.messages else []
@@ -151,15 +157,24 @@ class Manus(ToolCallAgent):
             if msg.tool_calls
             for tc in msg.tool_calls
         )
+        logger.info(f"[Profiling] Manus.think(): browser_in_use={browser_in_use}")
 
         if browser_in_use:
+            logger.info("[Profiling] Manus.think(): formatting next step prompt for browser context...")
             self.next_step_prompt = (
                 await self.browser_context_helper.format_next_step_prompt()
             )
+            logger.info("[Profiling] Manus.think(): next_step_prompt updated for browser context.")
 
+        t_parent_start = time.time()
         result = await super().think()
+        t_parent_end = time.time()
+        logger.info(f"[Profiling] Manus.think(): super().think() time={(t_parent_end-t_parent_start):.3f}s")
 
         # Restore original prompt
         self.next_step_prompt = original_prompt
 
+        t_end = time.time()
+        logger.info(f"[Profiling] Manus.think(): total time={(t_end-t_start):.3f}s")
+        logger.info("[Profiling] Manus.think(): exit")
         return result

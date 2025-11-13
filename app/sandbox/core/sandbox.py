@@ -3,6 +3,7 @@ import io
 import os
 import tarfile
 import tempfile
+import time
 import uuid
 from typing import Dict, Optional
 
@@ -210,26 +211,48 @@ class DockerSandbox:
         if not self.container:
             raise RuntimeError("Sandbox not initialized")
 
+        logger.info(f"[Profiling] sandbox.py:DockerSandbox:write_file():Writing to file {path} in sandbox...")
         try:
+            t0 = time.time()
             resolved_path = self._safe_resolve_path(path)
             parent_dir = os.path.dirname(resolved_path)
 
             # Create parent directory
             if parent_dir:
+                cmd_t0 = time.time()
                 await self.run_command(f"mkdir -p {parent_dir}")
+                cmd_t1 = time.time()
+                logger.info(
+                    f"[Profiling] sandbox.py:DockerSandbox:write_file():mkdir_time={(cmd_t1-cmd_t0):.6f}s for {parent_dir}"
+                )
 
             # Prepare file data
             # 把要写的文件内容打包成一个 tar 格式的字节流，
             # 例如把文件名 123hello.py 和内容一起封装成内存中的一个小型 tar 包
             # （因为 Docker 的文件写接口只接受 tar 流）
+            tar_t0 = time.time()
             tar_stream = await self._create_tar_stream(
                 os.path.basename(path), content.encode("utf-8")
+            )
+            tar_t1 = time.time()
+            logger.info(
+                f"[Profiling] sandbox.py:DockerSandbox:write_file():tar_prep_time={(tar_t1-tar_t0):.6f}s for {path}"
             )
 
             # Write file
             # 把刚刚的 tar 流解压到容器中的 parent_dir
+            put_t0 = time.time()
             await asyncio.to_thread(
                 self.container.put_archive, parent_dir or "/", tar_stream
+            )
+            put_t1 = time.time()
+            logger.info(
+                f"[Profiling] sandbox.py:DockerSandbox:write_file():put_archive_time={(put_t1-put_t0):.6f}s for {path}"
+            )
+
+            t_end = time.time()
+            logger.info(
+                f"[Profiling] sandbox.py:DockerSandbox:write_file():total_write_time={(t_end-t0):.6f}s for {path}"
             )
 
         except Exception as e:
@@ -434,7 +457,9 @@ class DockerSandbox:
         try:
             if self.terminal:
                 try:
+                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Starting terminal cleanup...")
                     await self.terminal.close()
+                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Finish terminal cleanup.")
                 except Exception as e:
                     errors.append(f"Terminal cleanup error: {e}")
                 finally:
@@ -442,7 +467,11 @@ class DockerSandbox:
 
             if self.container:
                 try:
+                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Starting Docker sandbox cleanup...")
+                    t0 = time.time()
                     await asyncio.to_thread(self.container.stop, timeout=5)
+                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Finish Docker container stop.")
+                    logger.info(f"Container stopped in {time.time()-t0:.2f}s")
                 except Exception as e:
                     errors.append(f"Container stop error: {e}")
 

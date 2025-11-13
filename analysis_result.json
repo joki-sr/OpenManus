@@ -1,0 +1,15 @@
+{
+  "weather_info": {
+    "city": "北京",
+    "temperature": 22,
+    "humidity": 65,
+    "description": "晴朗",
+    "timestamp": "2025-10-21 11:12:08"
+  },
+  "web_stats": {
+    "total_articles": 3,
+    "total_views": 3500,
+    "average_views": 1166.6666666666667
+  },
+  "analysis_time": "2025-10-21 11:12:08"
+}

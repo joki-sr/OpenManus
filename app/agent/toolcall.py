@@ -1,4 +1,5 @@
 import asyncio
+import time
 import json
 from typing import Any, List, Optional, Union
 
@@ -38,11 +39,15 @@ class ToolCallAgent(ReActAgent):
 
     async def think(self) -> bool:
         """Process current state and decide next actions using tools"""
+        logger.info(f"[Profiling] ToolCallAgent.think(): enter for agent {self.name}")
+        t_start = time.time()
         if self.next_step_prompt:
+            logger.info(f"[Profiling] ToolCallAgent.think(): next_step_prompt present, adding user message.")
             user_msg = Message.user_message(self.next_step_prompt)
             self.messages += [user_msg]
 
         try:
+            t_llm_start = time.time()
             # Get response with tool options
             response = await self.llm.ask_tool(
                 messages=self.messages,
@@ -54,6 +59,8 @@ class ToolCallAgent(ReActAgent):
                 tools=self.available_tools.to_params(),
                 tool_choice=self.tool_choices,
             )
+            t_llm_end = time.time()
+            logger.info(f"[Profiling] ToolCallAgent.think(): llm.ask_tool time={(t_llm_end-t_llm_start):.3f}s")
         except ValueError:
             raise
         except Exception as e:
@@ -69,9 +76,11 @@ class ToolCallAgent(ReActAgent):
                     )
                 )
                 self.state = AgentState.FINISHED
+                logger.info(f"[Profiling] ToolCallAgent.think(): exit (token limit error)")
                 return False
             raise
 
+        t_response_start = time.time()
         self.tool_calls = tool_calls = (
             response.tool_calls if response and response.tool_calls else []
         )
@@ -100,7 +109,9 @@ class ToolCallAgent(ReActAgent):
                     )
                 if content:
                     self.memory.add_message(Message.assistant_message(content))
+                    logger.info(f"[Profiling] ToolCallAgent.think(): exit (NONE mode, content)")
                     return True
+                logger.info(f"[Profiling] ToolCallAgent.think(): exit (NONE mode, no content)")
                 return False
 
             # Create and add assistant message
@@ -112,12 +123,19 @@ class ToolCallAgent(ReActAgent):
             self.memory.add_message(assistant_msg)
 
             if self.tool_choices == ToolChoice.REQUIRED and not self.tool_calls:
+                logger.info(f"[Profiling] ToolCallAgent.think(): exit (REQUIRED mode, no tool_calls)")
                 return True  # Will be handled in act()
 
             # For 'auto' mode, continue with content if no commands but content exists
             if self.tool_choices == ToolChoice.AUTO and not self.tool_calls:
+                logger.info(f"[Profiling] ToolCallAgent.think(): exit (AUTO mode, no tool_calls, content={bool(content)})")
                 return bool(content)
 
+            t_response_end = time.time()
+            logger.info(f"[Profiling] ToolCallAgent.think(): response handling time={(t_response_end-t_response_start):.3f}s")
+            t_end = time.time()
+            logger.info(f"[Profiling] ToolCallAgent.think(): total time={(t_end-t_start):.3f}s")
+            logger.info(f"[Profiling] ToolCallAgent.think(): exit (tool_calls={bool(self.tool_calls)})")
             return bool(self.tool_calls)
         except Exception as e:
             logger.error(f"🚨 Oops! The {self.name}'s thinking process hit a snag: {e}")
@@ -126,6 +144,7 @@ class ToolCallAgent(ReActAgent):
                     f"Error encountered while processing: {str(e)}"
                 )
             )
+            logger.info(f"[Profiling] ToolCallAgent.think(): exit (exception)")
             return False
 
     async def act(self) -> str:

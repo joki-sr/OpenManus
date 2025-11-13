@@ -1,4 +1,5 @@
 import math
+import time
 from typing import Dict, List, Optional, Union
 
 import tiktoken
@@ -729,9 +730,12 @@ class LLM:
                 )
 
             params["stream"] = False  # Always use non-streaming for tool requests
+            t_llm_start = time.time()
             response: ChatCompletion = await self.client.chat.completions.create(
                 **params
             )
+            t_llm_end = time.time()
+            logger.info(f"[Profiling] LLM.ask_tool(): llm_request_time={(t_llm_end-t_llm_start):.6f}s")
 
             # Check if response is valid
             if not response.choices or not response.choices[0].message:
