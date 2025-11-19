@@ -60,6 +60,7 @@ class ToolCallAgent(ReActAgent):
                 tool_choice=self.tool_choices,
             )
             t_llm_end = time.time()
+            logger.info(f"Response:{response}")
             logger.info(f"[Profiling] ToolCallAgent.think(): llm.ask_tool time={(t_llm_end-t_llm_start):.3f}s")
         except ValueError:
             raise

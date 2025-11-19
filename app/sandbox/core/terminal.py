@@ -137,83 +137,116 @@ class DockerSession:
         return buffer.decode("utf-8")
 
     async def execute(self, command: str, timeout: Optional[int] = None) -> str:
-        """Executes a command and returns cleaned output.
+            """Executes a command and returns cleaned output.
 
-        Args:
-            command: Shell command to execute.
-            timeout: Maximum execution time in seconds.
+            Args:
+                command: Shell command to execute.
+                timeout: Maximum execution time in seconds.
 
-        Returns:
-            Command output as string with prompt markers removed.
+            Returns:
+                Command output as string with prompt markers removed.
 
-        Raises:
-            RuntimeError: If session not initialized or execution fails.
-            TimeoutError: If command execution exceeds timeout.
-        """
-        if not self.socket:
-            raise RuntimeError("Session not initialized")
+            Raises:
+                RuntimeError: If session not initialized or execution fails.
+                TimeoutError: If command execution exceeds timeout.
+            """
+            if not self.socket:
+                raise RuntimeError("Session not initialized")
 
-        try:
-            # Sanitize command to prevent shell injection
-            sanitized_command = self._sanitize_command(command)
-            full_command = f"{sanitized_command}\necho $?\n"
-            self.socket.sendall(full_command.encode())
+            try:
+                # Sanitize command to prevent shell injection
+                sanitized_command = self._sanitize_command(command)
+                # full_command = f"{sanitized_command}\necho $?\n"
+                full_command = f"{sanitized_command}\n"
+                self.socket.sendall(full_command.encode())
 
-            async def read_output() -> str:
-                buffer = b""
-                result_lines = []
-                command_sent = False
+                from app.logger import logger
+                logger.info(f"[Debug] Send command to sandbox: {full_command} finished.")
 
-                while True:
-                    try:
-                        chunk = self.socket.recv(4096)
-                        if not chunk:
-                            break
+                # import pdb
+                # pdb.set_trace()
+                # # #################debug#########################
+                # # cmd1 = f"{sanitized_command}\n".encode() #并不会转化
+                # # cmd3 = f"{sanitized_command}".encode()
+                # # print(cmd3)
+                # # cmd2 = "echo $?\n".encode()
+                # # #################debug###############################
+                # cmd1 = sanitized_command.encode()
+                # # cmd2 = "echo $?".encode()
+                # self.socket.sendall(cmd1)
+                # # self.socket.sendall(cmd2)
 
-                        buffer += chunk
-                        lines = buffer.split(b"\n")
+                # cmd1 = sanitized_command.encode()
+                # self.socket.sendall(cmd1)
 
-                        buffer = lines[-1]
-                        lines = lines[:-1]
+                async def read_output() -> str:
+                    buffer = b""
+                    result_lines = []
+                    command_sent = False
 
-                        for line in lines:
-                            line = line.rstrip(b"\r")
+                    while True:
+                        try:
+                            chunk = self.socket.recv(4096)
+                            if not chunk:
+                                break
 
-                            if not command_sent:
-                                command_sent = True
+                            buffer += chunk
+                            lines = buffer.split(b"\n")
+
+                            buffer = lines[-1]
+                            lines = lines[:-1]
+
+                            for line in lines:
+                                line = line.rstrip(b"\r")
+                                stripped = line.strip()
+
+                                # 跳过第一行（命令回显）
+                                if not command_sent:
+                                    command_sent = True
+                                    continue
+
+                                # 跳过 shell prompt 回显: "$ xxx"
+                                if stripped.startswith(b"$ "):
+                                    continue
+
+                                # 跳过命令自身的回显
+                                # mkdir -p /workspace
+                                if stripped == sanitized_command.encode():
+                                    continue
+
+                                # 跳过 echo $? 本身
+                                if stripped == b"echo $?":
+                                    continue
+
+                                # 其它有效输出加入结果
+                                if stripped:
+                                    result_lines.append(stripped)
+
+                            # prompt 结束: "$ "
+                            if buffer.endswith(b"$ "):
+                                break
+
+                        except socket.error as e:
+                            if e.errno == socket.EWOULDBLOCK:
+                                await asyncio.sleep(0.1)
                                 continue
+                            raise
 
-                            if line.strip() == b"echo $?" or line.strip().isdigit():
-                                continue
+                    output = b"\n".join(result_lines).decode("utf-8")
+                    return output
 
-                            if line.strip():
-                                result_lines.append(line)
+                if timeout:
+                    result = await asyncio.wait_for(read_output(), timeout)
+                    logger.info(f"[Debug] Get result from sandbox: {result}.")
+                else:
+                    result = await read_output()
 
-                        if buffer.endswith(b"$ "):
-                            break
+                return result.strip()
 
-                    except socket.error as e:
-                        if e.errno == socket.EWOULDBLOCK:
-                            await asyncio.sleep(0.1)
-                            continue
-                        raise
-
-                output = b"\n".join(result_lines).decode("utf-8")
-                output = re.sub(r"\n\$ echo \$\$?.*$", "", output)
-
-                return output
-
-            if timeout:
-                result = await asyncio.wait_for(read_output(), timeout)
-            else:
-                result = await read_output()
-
-            return result.strip()
-
-        except asyncio.TimeoutError:
-            raise TimeoutError(f"Command execution timed out after {timeout} seconds")
-        except Exception as e:
-            raise RuntimeError(f"Failed to execute command: {e}")
+            except asyncio.TimeoutError:
+                raise TimeoutError(f"Command execution timed out after {timeout} seconds")
+            except Exception as e:
+                raise RuntimeError(f"Failed to execute command: {e}")
 
     def _sanitize_command(self, command: str) -> str:
         """Sanitizes the command string to prevent shell injection.
