@@ -36,6 +36,7 @@ class ToolCallAgent(ReActAgent):
 
     max_steps: int = 30
     max_observe: Optional[Union[int, bool]] = None
+    mock_counter: int = 0  # For testing with mock LLM
 
     async def think(self) -> bool:
         """Process current state and decide next actions using tools"""
@@ -48,17 +49,24 @@ class ToolCallAgent(ReActAgent):
 
         try:
             t_llm_start = time.time()
-            # Get response with tool options
-            response = await self.llm.ask_tool(
-                messages=self.messages,
-                system_msgs=(
-                    [Message.system_message(self.system_prompt)]
-                    if self.system_prompt
-                    else None
-                ),
-                tools=self.available_tools.to_params(),
-                tool_choice=self.tool_choices,
-            )
+            # # Get response with tool options
+            # response = await self.llm.ask_tool(
+            #     messages=self.messages,
+            #     system_msgs=(
+            #         [Message.system_message(self.system_prompt)]
+            #         if self.system_prompt
+            #         else None
+            #     ),
+            #     tools=self.available_tools.to_params(),
+            #     tool_choice=self.tool_choices,
+            # )
+
+            ########################## get response from mock ##########################
+            from app.fake_llm import FakeLLMInstance
+            response = FakeLLMInstance.responses[self.mock_counter]
+            self.mock_counter = (self.mock_counter + 1) % len(FakeLLMInstance.responses)
+            ########################## get response from mock ##########################
+
             t_llm_end = time.time()
             logger.info(f"Response:{response}")
             logger.info(f"[Profiling] ToolCallAgent.think(): llm.ask_tool time={(t_llm_end-t_llm_start):.3f}s")

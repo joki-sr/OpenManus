@@ -152,9 +152,9 @@ class BaseAgent(BaseModel, ABC):
                 self.current_step = 0
                 self.state = AgentState.IDLE
                 results.append(f"Terminated: Reached max steps ({self.max_steps})")
-        # logger.info(f"[Profiling] Prepare to call SANDBOX_CLIENT.cleanup()")
-        # await SANDBOX_CLIENT.cleanup()
-        # logger.info(f"[Profiling] Finish to call SANDBOX_CLIENT.cleanup()")
+        logger.info(f"[Profiling] Prepare to call SANDBOX_CLIENT.cleanup()")
+        await SANDBOX_CLIENT.cleanup()
+        logger.info(f"[Profiling] Finish to call SANDBOX_CLIENT.cleanup()")
         return "\n".join(results) if results else "No steps executed"
 
     @abstractmethod
