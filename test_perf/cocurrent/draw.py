@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # ---------------------- 配置参数（按需修改）----------------------
-CSV_PATH = "/mnt/e/Development/AgentAI/OpenManus/test_perf/cocurrent/data/20251120185649_10.csv"  # 你的CSV文件路径
+CSV_PATH = "/mnt/e/Development/AgentAI/OpenManus/test_perf/cocurrent/data/20251121140504_100.csv"  # 你的CSV文件路径
 csv_filename = os.path.splitext(os.path.basename(CSV_PATH))[0]  # 结果：20251118165602_1
 OUTPUT_IMG = f"/mnt/e/Development/AgentAI/OpenManus/test_perf/cocurrent/data/{csv_filename}.png"  # 最终图片路径
 FIG_SIZE = (12, 6)  # 图表尺寸（宽，高）
