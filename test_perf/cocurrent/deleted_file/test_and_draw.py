@@ -38,7 +38,7 @@ AGENT_COUNT = parse_agent_count()
 TASK_PROMPT = "请利用python_execute工具，写python代码并计算前1000个素数"
 MONITOR_INTERVAL = 0.5  # 秒
 TIMESTAMP = time.strftime("%Y%m%d%H%M%S")
-OUTPUT_DIR = "/mnt/e/Development/AgentAI/OpenManus/test_perf/cocurrent/data"
+OUTPUT_DIR = "/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data"
 OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}.csv"
 
 # 确保输出目录存在

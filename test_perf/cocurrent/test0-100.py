@@ -23,12 +23,12 @@ def parse_agent_count():
 AGENT_COUNT = parse_agent_count()
 TASK_PROMPT = "请利用python_execute工具，写python代码并计算前1000个素数"
 MONITOR_INTERVAL = 0.5
-PYTHON_TOOL = "/mnt/e/Development/AgentAI/OpenManus/.venv/bin/python"
-MAIN_PY = "/mnt/e/Development/AgentAI/OpenManus/main.py"
+PYTHON_TOOL = "/home/zhangsiyi/AgenticAI/OpenManus/.venv/bin/python"
+MAIN_PY = "/home/zhangsiyi/AgenticAI/OpenManus/main.py"
 
 # 输出
 TIMESTAMP = time.strftime("%Y%m%d%H%M%S")
-OUTPUT_DIR = "/mnt/e/Development/AgentAI/OpenManus/test_perf/cocurrent/data"
+OUTPUT_DIR = "/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}.csv"
 # ============================ 参数 ==============================

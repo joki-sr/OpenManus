@@ -1,12 +1,12 @@
-(OpenManus) searice@WIN-20250920IMR:/mnt/e/Development/AgentAI/OpenManus$ python main.py --prompt "写一个从 1 加到 10的5次方的纯 Python for 循环程序并执行"
- /mnt/e/Development/AgentAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py: 345: UserWarning: Valid config keys have changed in V2:
+(OpenManus) searice@WIN-20250920IMR:/home/zhangsiyi/AgenticAI/OpenManus$ python main.py --prompt "写一个从 1 加到 10的5次方的纯 Python for 循环程序并执行"
+ /home/zhangsiyi/AgenticAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py: 345: UserWarning: Valid config keys have changed in V2:
 * 'underscore_attrs_are_private' has been removed
   warnings.warn(message, UserWarning)
 INFO     [browser_use
 ] BrowserUse logging setup complete with level info
 INFO     [root
 ] Anonymized telemetry enabled. See https: //docs.browser-use.com/development/telemetry for more information.
-/mnt/e/Development/AgentAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py: 345: UserWarning: Valid config keys have changed in V2:
+/home/zhangsiyi/AgenticAI/OpenManus/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py: 345: UserWarning: Valid config keys have changed in V2:
 * 'underscore_attrs_are_private' has been removed
   warnings.warn(message, UserWarning)
 2025-11-21T05: 47: 44.955917Z [info
@@ -46,7 +46,7 @@ INFO     [root
 ] ToolCallAgent.think(): llm.ask_tool time=13.885s
 2025-11-21 13: 48: 01.593 | INFO     | app.agent.toolcall:think: 64 - Response:ChatCompletionMessage(content='\n\n我来帮你创建一个从 1 加到 10的5次方（即 100000）的纯 Python for 循环程序，并执行它。\n', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=[ChatCompletionMessageToolCall(id='call_-8139835348917156198', function=Function(arguments='{
         "command": "create",
-        "path": "/mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py",
+        "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py",
         "file_text": "# 从 1 加到 10的5次方（100000）的纯 Python for 循环程序\\n\\ndef sum_to_100000():\\n    \\"\\"\\"\\n    使用 for 循环从 1 加到 100000\\n    \\"\\"\\"\\n    total = 0\\n    for i in range(1, 100001):  # range(1, 100001) 会生成 1 到 100000 的数字\\n        total += i\\n    \\n    return total\\n\\nif __name__ == \\"__main__\\":\\n    result = sum_to_100000()\\n    print(f\\"从 1 加到 100000 的结果是: {result
         }\\")\\n    \\n    # 验证结果是否正确\\n    # 使用数学公式 n*(n+1)/2 来验证\\n    n = 100000\\n    expected_result = n * (n + 1) // 2\\n    print(f\\"使用数学公式验证的结果: {expected_result
         }\\")\\n    print(f\\"结果是否正确: {result == expected_result
@@ -62,7 +62,7 @@ INFO     [root
 ]
 2025-11-21 13: 48: 01.597 | INFO     | app.agent.toolcall:think: 99 - 🔧 Tool arguments: {
     "command": "create",
-    "path": "/mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py",
+    "path": "/home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py",
     "file_text": "# 从 1 加到 10的5次方（100000）的纯 Python for 循环程序\n\ndef sum_to_100000():\n    \"\"\"\n    使用 for 循环从 1 加到 100000\n    \"\"\"\n    total = 0\n    for i in range(1, 100001):  # range(1, 100001) 会生成 1 到 100000 的数字\n        total += i\n    \n    return total\n\nif __name__ == \"__main__\":\n    result = sum_to_100000()\n    print(f\"从 1 加到 100000 的结果是: {result}\")\n    \n    # 验证结果是否正确\n    # 使用数学公式 n*(n+1)/2 来验证\n    n = 100000\n    expected_result = n * (n + 1) // 2\n    print(f\"使用数学公式验证的结果: {expected_result}\")\n    print(f\"结果是否正确: {result == expected_result}\")"
 }
 2025-11-21 13: 48: 01.598 | INFO     | app.agent.toolcall:think: 136 - [Profiling
@@ -93,17 +93,17 @@ INFO     [root
     }
 ] creation.
 2025-11-21 13: 48: 02.266 | INFO     | app.sandbox.core.sandbox:write_file: 214 - [Profiling
-] sandbox.py:DockerSandbox:write_file():Writing to file /mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py in sandbox...
+] sandbox.py:DockerSandbox:write_file():Writing to file /home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py in sandbox...
 2025-11-21 13: 48: 02.370 | INFO     | app.sandbox.core.sandbox:write_file: 225 - [Profiling
-] sandbox.py:DockerSandbox:write_file():mkdir_time=0.102200s for /mnt/e/Development/AgentAI/OpenManus/workspace
+] sandbox.py:DockerSandbox:write_file():mkdir_time=0.102200s for /home/zhangsiyi/AgenticAI/OpenManus/workspace
 2025-11-21 13: 48: 02.372 | INFO     | app.sandbox.core.sandbox:write_file: 238 - [Profiling
-] sandbox.py:DockerSandbox:write_file():tar_prep_time=0.000411s for /mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py
+] sandbox.py:DockerSandbox:write_file():tar_prep_time=0.000411s for /home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py
 2025-11-21 13: 48: 02.381 | INFO     | app.sandbox.core.sandbox:write_file: 249 - [Profiling
-] sandbox.py:DockerSandbox:write_file():put_archive_time=0.008262s for /mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py
+] sandbox.py:DockerSandbox:write_file():put_archive_time=0.008262s for /home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py
 2025-11-21 13: 48: 02.382 | INFO     | app.sandbox.core.sandbox:write_file: 254 - [Profiling
-] sandbox.py:DockerSandbox:write_file():total_write_time=0.113950s for /mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py
+] sandbox.py:DockerSandbox:write_file():total_write_time=0.113950s for /home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py
 2025-11-21 13: 48: 02.383 | INFO     | app.agent.toolcall:act: 170 - 🎯 Tool 'str_replace_editor' completed its mission! Result: Observed output of cmd `str_replace_editor` executed:
-File created successfully at: /mnt/e/Development/AgentAI/OpenManus/workspace/sum_to_100000.py
+File created successfully at: /home/zhangsiyi/AgenticAI/OpenManus/workspace/sum_to_100000.py
 2025-11-21 13: 48: 02.383 | INFO     | app.agent.react:step: 47 - [Profiling
 ] Act completed
 2025-11-21 13: 48: 02.384 | INFO     | app.agent.react:step: 48 - [Profiling
