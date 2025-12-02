@@ -1,28 +1,44 @@
+import argparse
 import asyncio
 import csv
 import os
 import sys
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import psutil
 
 
 # ============================ 参数 ==============================
-def parse_agent_count():
-    if len(sys.argv) < 2:
-        print("用法: python test_and_draw.py <AGENT_COUNT>")
-        sys.exit(1)
-    try:
-        n = int(sys.argv[1])
-        assert n >= 0
-        return n
-    except:
-        print("AGENT_COUNT 必须是 >=0 的整数")
-        sys.exit(1)
+def parse_args():
+    parser = argparse.ArgumentParser(description="并发 agent 压测脚本")
+    parser.add_argument(
+        "--procs",
+        type=int,
+        help="需要启动的 agent 数量 (>=0)",
+    )
+    parser.add_argument(
+        "--aff",
+        type=int,
+        choices=[0, 1],
+        help="是否对每个子进程绑核，1=绑定，0=不绑定",
+    )
+    args = parser.parse_args()
 
-AGENT_COUNT = parse_agent_count()
+    if args.procs is None:
+        parser.error("输入并发数")
+    if args.procs < 0:
+        parser.error("num大于等于0")
+
+    return args
+
+
+ARGS = parse_args()
+AGENT_COUNT = ARGS.procs
+AFF_MODE = ARGS.aff
 TASK_PROMPT = "请利用python_execute工具，写python代码并计算前1000个素数"
-MONITOR_INTERVAL = 0.5
+MONITOR_INTERVAL = 0.1
 PYTHON_TOOL = "/home/zhangsiyi/AgenticAI/OpenManus/.venv/bin/python"
 MAIN_PY = "/home/zhangsiyi/AgenticAI/OpenManus/main.py"
 
@@ -30,11 +46,21 @@ MAIN_PY = "/home/zhangsiyi/AgenticAI/OpenManus/main.py"
 TIMESTAMP = time.strftime("%Y%m%d%H%M%S")
 OUTPUT_DIR = "/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}.csv"
+if AFF_MODE == 1:
+    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_aff.csv"
+elif AFF_MODE == 0:
+    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_noaff.csv"
+else:
+    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}.csv"
 # ============================ 参数 ==============================
 
 
 # ======================= 启动一个 agent =======================
+# CPU_CORES = psutil.cpu_count(logical=True)
+# CPU_CORES = CPU_CORES / 2
+# CPU_CORES = 32
+CPU_CORES = 32
+print(f"CPU_CORES: {CPU_CORES}")
 async def run_agent(agent_id: int):
     print(f"[Agent {agent_id}] start.")
 
@@ -49,6 +75,8 @@ async def run_agent(agent_id: int):
     # proc = await asyncio.create_subprocess_exec(
     #     PYTHON_TOOL, MAIN_PY , "--prompt", TASK_PROMPT
     # )
+    if AFF_MODE == 1:
+        psutil.Process(proc.pid).cpu_affinity([agent_id % CPU_CORES])
 
     return proc
 
@@ -64,15 +92,16 @@ async def monitor_loop(procs: list, done_flag: asyncio.Event, is_benchmark: bool
 
     with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["time_s", "cpu_percent", "memory_mb"])
+        writer.writerow(["time_s", "cpu_percent", "memory_mb", "cur_time"])
 
         while True:
             now = time.time() - start_time
             cpu = psutil.cpu_percent(interval=0)
             mem = psutil.virtual_memory().used / (1024 * 1024)
 
-            print(f"time={now:.3f}s | CPU={cpu:.1f}% | MEM={mem:.1f}MB")
-            writer.writerow([round(now, 3), round(cpu, 1), round(mem, 1)])
+            cur_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"time={now:.3f}s | CPU={cpu:.1f}% | MEM={mem:.1f}MB | CUR={cur_time}")
+            writer.writerow([round(now, 3), round(cpu, 1), round(mem, 1), cur_time])
 
             # --- benchmark 模式，只跑 30s ---
             if is_benchmark and now >= 30:

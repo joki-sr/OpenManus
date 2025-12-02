@@ -98,7 +98,7 @@ class DockerSandbox:
                 # Ensure Python output is not buffered
             )
             await self.terminal.init()
-            logger.info("[DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.")
+            logger.info(f"[DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.")
             return self
 
         except Exception as e:

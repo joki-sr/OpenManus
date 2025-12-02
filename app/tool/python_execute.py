@@ -79,7 +79,7 @@ class PythonExecute(BaseTool):
     async def _execute_in_sandbox(
         self,
         code: str,
-        timeout: int = 5,
+        timeout: int
     ) -> Dict:
         """
         Executes Python code in the sandbox environment.
@@ -129,7 +129,7 @@ class PythonExecute(BaseTool):
     async def execute(
         self,
         code: str,
-        timeout: int = 5,
+        timeout: int = 15,
     ) -> Dict:
         """
         Executes the provided Python code with a timeout.
