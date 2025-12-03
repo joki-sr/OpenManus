@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 
 from app.agent.manus import Manus
 from app.logger import logger
@@ -34,6 +35,9 @@ async def main():
         # Ensure agent resources are cleaned up before exiting
         await agent.cleanup()
 
+    # 强制退出，避免任何未完成的任务阻止进程退出
+    logger.info("[Profiling] Force exiting process...")
+    os._exit(0)
 
 if __name__ == "__main__":
     logger.info("[Profiling] Starting main.py execution")
