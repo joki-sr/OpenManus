@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument(
         "--aff",
         type=int,
-        choices=[0, 1],
+        # choices=[0, 1],
         help="是否对每个子进程绑核，1=绑定，0=不绑定",
     )
     args = parser.parse_args()
@@ -38,29 +38,28 @@ ARGS = parse_args()
 AGENT_COUNT = ARGS.procs
 AFF_MODE = ARGS.aff
 TASK_PROMPT = "请利用python_execute工具，写python代码并计算前1000个素数"
-MONITOR_INTERVAL = 0.1
+MONITOR_INTERVAL = 0.5
 PYTHON_TOOL = "/home/zhangsiyi/AgenticAI/OpenManus/.venv/bin/python"
 MAIN_PY = "/home/zhangsiyi/AgenticAI/OpenManus/main.py"
+CPU_SUM_CORES = psutil.cpu_count(logical=True)
+CPU_CORES = min(AFF_MODE if AFF_MODE is not None else 0, CPU_SUM_CORES)
 
 # 输出
 TIMESTAMP = time.strftime("%Y%m%d%H%M%S")
 OUTPUT_DIR = "/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-if AFF_MODE == 1:
-    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_aff.csv"
-elif AFF_MODE == 0:
-    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_noaff.csv"
-else:
+
+if AFF_MODE is None:
     OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}.csv"
+elif AFF_MODE != 0:
+    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_aff{CPU_CORES}.csv"
+else:#  AFF_MODE == 0:
+    OUTPUT_CSV = f"{OUTPUT_DIR}/{TIMESTAMP}_{AGENT_COUNT}_noaff.csv"
 # ============================ 参数 ==============================
 
 
 # ======================= 启动一个 agent =======================
-# CPU_CORES = psutil.cpu_count(logical=True)
-# CPU_CORES = CPU_CORES / 2
-# CPU_CORES = 32
-CPU_CORES = 32
-print(f"CPU_CORES: {CPU_CORES}")
+# print(f"CPU_CORES: {CPU_CORES}")
 async def run_agent(agent_id: int):
     print(f"[Agent {agent_id}] start.")
 
@@ -75,7 +74,11 @@ async def run_agent(agent_id: int):
     # proc = await asyncio.create_subprocess_exec(
     #     PYTHON_TOOL, MAIN_PY , "--prompt", TASK_PROMPT
     # )
-    if AFF_MODE == 1:
+
+
+    # 如果AFF
+    if AFF_MODE is not None and AFF_MODE != 0 :
+        print(f"[Agent {agent_id}] bind core: {agent_id % CPU_CORES}")
         psutil.Process(proc.pid).cpu_affinity([agent_id % CPU_CORES])
 
     return proc
@@ -115,7 +118,7 @@ async def monitor_loop(procs: list, done_flag: asyncio.Event, is_benchmark: bool
 
             await asyncio.sleep(MONITOR_INTERVAL)
 
-    print(f"[Monitor] data saved: {OUTPUT_CSV}")
+    print(f"[Monitor] data saved:\n{OUTPUT_CSV}")
 
 
 # ======================= 主流程 =======================

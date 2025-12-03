@@ -13,7 +13,6 @@ from docker.models.containers import Container
 
 from app.config import SandboxSettings
 from app.sandbox.core.exceptions import SandboxTimeoutError
-from app.sandbox.core.terminal import AsyncDockerizedTerminal
 from app.logger import logger
 
 
@@ -46,7 +45,6 @@ class DockerSandbox:
         self.volume_bindings = volume_bindings or {}
         self.client = docker.from_env()
         self.container: Optional[Container] = None
-        self.terminal: Optional[AsyncDockerizedTerminal] = None
 
     async def create(self) -> "DockerSandbox":
         """Creates and starts the sandbox container.
@@ -90,14 +88,6 @@ class DockerSandbox:
             # Start container
             await asyncio.to_thread(self.container.start)
 
-            # Initialize terminal
-            self.terminal = AsyncDockerizedTerminal(
-                container["Id"],
-                self.config.work_dir,
-                env_vars={"PYTHONUNBUFFERED": "1"}
-                # Ensure Python output is not buffered
-            )
-            await self.terminal.init()
             logger.info(f"[DEBUG] sandbox.py:DockerSandbox:create():Finish Docker sandbox[name:{container_name}] creation.")
             return self
 
@@ -154,17 +144,64 @@ class DockerSandbox:
             RuntimeError: If sandbox not initialized or command execution fails.
             TimeoutError: If command execution times out.
         """
-        if not self.terminal:
+        if not self.container:
             raise RuntimeError("Sandbox not initialized")
 
+        timeout_value = timeout or self.config.timeout
+
+        exec_create = await asyncio.to_thread(
+            self.client.api.exec_create,
+            self.container.id,
+            cmd,
+            stdout=True,
+            stderr=True,
+            stdin=False,
+            tty=False,
+            environment=self._build_exec_env(),
+            workdir=self.config.work_dir,
+        )
+        exec_id = exec_create.get("Id")
+        if not exec_id:
+            raise RuntimeError("Failed to create exec instance for command")
+
+        async def _start_exec():
+            return await asyncio.to_thread(
+                self.client.api.exec_start,
+                exec_id,
+                detach=False,
+                tty=False,
+                stream=False,
+                demux=True,
+            )
+
         try:
-            return await self.terminal.run_command(
-                cmd, timeout=timeout or self.config.timeout
-            )
-        except TimeoutError:
+            stdout_stderr = await asyncio.wait_for(_start_exec(), timeout_value)
+        except asyncio.TimeoutError as exc:
             raise SandboxTimeoutError(
-                f"Command execution timed out after {timeout or self.config.timeout} seconds"
-            )
+                f"Command execution timed out after {timeout_value} seconds"
+            ) from exc
+
+        inspect_info = await asyncio.to_thread(self.client.api.exec_inspect, exec_id)
+        exit_code = inspect_info.get("ExitCode", 1)
+
+        stdout_bytes, stderr_bytes = stdout_stderr or (b"", b"")
+        stdout = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
+        stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
+
+        output = stdout + stderr
+        logger.debug(
+            "Command executed in sandbox (exit=%s): %s",
+            exit_code,
+            cmd,
+        )
+
+        return output
+
+    def _build_exec_env(self) -> Dict[str, str]:
+        """Build environment variables for docker exec calls."""
+        return {
+            "PYTHONUNBUFFERED": "1",
+        }
 
     async def read_file(self, path: str) -> str:
         """Reads a file from the container.
@@ -455,16 +492,6 @@ class DockerSandbox:
         """Cleans up sandbox resources."""
         errors = []
         try:
-            if self.terminal:
-                try:
-                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Starting terminal cleanup...")
-                    await self.terminal.close()
-                    logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Finish terminal cleanup.")
-                except Exception as e:
-                    errors.append(f"Terminal cleanup error: {e}")
-                finally:
-                    self.terminal = None
-
             if self.container:
                 try:
                     logger.info("[Profiling] sandbox.py:DockerSandbox:cleanup():Starting Docker sandbox cleanup...")
@@ -482,6 +509,15 @@ class DockerSandbox:
                 finally:
                     self.container = None
                     logger.info("[DEBUG] sandbox.py:DockerSandbox:cleanup():Finish Docker sandbox cleanup.")
+
+            # 关闭Docker client以释放连接
+            if self.client:
+                try:
+                    self.client.close()
+                except Exception as e:
+                    errors.append(f"Client close error: {e}")
+                finally:
+                    self.client = None
 
         except Exception as e:
             errors.append(f"General cleanup error: {e}")

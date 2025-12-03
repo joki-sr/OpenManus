@@ -7,8 +7,11 @@ and isolation for running untrusted code.
 from app.sandbox.client import (
     BaseSandboxClient,
     LocalSandboxClient,
+    SharedSandboxClient,
     create_sandbox_client,
+    create_shared_sandbox_client,
 )
+from app.sandbox.core.shared_pool import SharedSandboxPool, get_shared_pool
 from app.sandbox.core.exceptions import (
     SandboxError,
     SandboxResourceError,
@@ -23,7 +26,11 @@ __all__ = [
     "SandboxManager",
     "BaseSandboxClient",
     "LocalSandboxClient",
+    "SharedSandboxClient",
+    "SharedSandboxPool",
     "create_sandbox_client",
+    "create_shared_sandbox_client",
+    "get_shared_pool",
     "SandboxError",
     "SandboxTimeoutError",
     "SandboxResourceError",

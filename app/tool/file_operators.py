@@ -96,12 +96,11 @@ class LocalFileOperator(FileOperator):
 class SandboxFileOperator(FileOperator):
     """File operations implementation for sandbox environment."""
 
-    # def __init__(self):
-    #     self.sandbox_client = SANDBOX_CLIENT
     def __init__(self, sandbox_client=None):
         if sandbox_client is None:
-            from app.sandbox.client import create_sandbox_client
-            sandbox_client = create_sandbox_client()
+            # 使用共享sandbox client，tag为"file_ops"
+            from app.sandbox.client import create_shared_sandbox_client
+            sandbox_client = create_shared_sandbox_client(tag="file_ops")
         self.sandbox_client = sandbox_client
 
     async def _ensure_sandbox_initialized(self):

@@ -92,33 +92,40 @@ class PythonExecute(BaseTool):
             Dict: Contains 'observation' with execution output and 'success' status.
         """
         try:
-            from app.sandbox.client import SANDBOX_CLIENT
+            from app.sandbox.client import create_shared_sandbox_client
 
-            # Ensure sandbox is initialized
-            await SANDBOX_CLIENT.create()
+            # 使用共享sandbox client，tag为"python_execute"
+            sandbox_client = create_shared_sandbox_client(tag="python_execute")
 
-            # Create a temporary file to store the Python code
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".py", delete=False
-            ) as f:
-                temp_script = f.name
-                f.write(code)
+            try:
+                # 获取或创建共享sandbox
+                await sandbox_client.create()
 
-            # Copy the script to sandbox
-            container_script_path = f"/workspace/{Path(temp_script).name}"
-            await SANDBOX_CLIENT.copy_to(temp_script, container_script_path)
+                # Create a temporary file to store the Python code
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".py", delete=False
+                ) as f:
+                    temp_script = f.name
+                    f.write(code)
 
-            # Execute the Python script in sandbox
-            command = f"python {container_script_path}"
-            output = await SANDBOX_CLIENT.run_command(command, timeout)
+                # Copy the script to sandbox
+                container_script_path = f"/workspace/{Path(temp_script).name}"
+                await sandbox_client.copy_to(temp_script, container_script_path)
 
-            # Clean up temporary file
-            Path(temp_script).unlink(missing_ok=True)
+                # Execute the Python script in sandbox
+                command = f"python {container_script_path}"
+                output = await sandbox_client.run_command(command, timeout)
 
-            return {
-                "observation": output,
-                "success": True,
-            }
+                # Clean up temporary file
+                Path(temp_script).unlink(missing_ok=True)
+
+                return {
+                    "observation": output,
+                    "success": True,
+                }
+            finally:
+                # 释放sandbox引用（不会立即销毁，只是减少引用计数）
+                await sandbox_client.cleanup()
         except Exception as e:
             logger.error(f"Error executing code in sandbox: {e}")
             return {
