@@ -136,7 +136,9 @@ class PythonExecute(BaseTool):
     async def execute(
         self,
         code: str,
-        timeout: int = 15,
+        # timeout: int = 15,
+        # timeout_value here!!
+        timeout: int = 300,
     ) -> Dict:
         """
         Executes the provided Python code with a timeout.
