@@ -1,10 +1,25 @@
+import argparse
 import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# ---------------------- 配置参数（按需修改）----------------------
-CSV_PATH = "/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data/20251203094955_10.csv"  # 你的CSV文件路径
+# ---------------------- 解析命令行参数 -----------------------
+parser = argparse.ArgumentParser(description="绘制CPU和内存使用趋势图")
+parser.add_argument(
+    "--path",
+    type=str,
+    required=True,
+    help="CSV文件路径（必需）",
+)
+args = parser.parse_args()
+
+CSV_PATH = args.path
+if not os.path.exists(CSV_PATH):
+    print(f"错误：文件不存在：{CSV_PATH}")
+    exit(1)
+
+# ---------------------- 配置参数 -----------------------
 csv_filename = os.path.splitext(os.path.basename(CSV_PATH))[0]  # 结果：20251118165602_1
 OUTPUT_IMG = f"/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data/{csv_filename}.png"  # 最终图片路径
 FIG_SIZE = (12, 6)  # 图表尺寸（宽，高）

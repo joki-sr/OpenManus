@@ -27,7 +27,7 @@ class PoolManagerService:
     def __init__(
         self,
         registry_dir: Optional[Path] = None,
-        idle_timeout: int = 3600,
+        idle_timeout: int = 300,
         cleanup_interval: int = 300,
         pid_file: Optional[Path] = None,
     ):
@@ -273,8 +273,8 @@ def main():
     parser.add_argument(
         "--idle-timeout",
         type=int,
-        default=3600,
-        help="Idle timeout in seconds (default: 3600)",
+        default=300,
+        help="Idle timeout in seconds (default: 300)",
     )
     parser.add_argument(
         "--cleanup-interval",

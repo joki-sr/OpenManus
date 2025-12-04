@@ -5,4 +5,4 @@ steps:
     记得手动中止程序！
 3. 修改draw1.py中的csv文件路径
 4. 运行draw1.py，绘图
-    python /home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/draw.py
+    python /home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/draw.py --path=<csv_path>

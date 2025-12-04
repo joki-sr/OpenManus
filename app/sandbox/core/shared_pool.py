@@ -174,6 +174,8 @@ class SharedSandboxPool:
             # 1. 先尝试从本地池中获取
             selected_sandbox_id = await self._select_available_sandbox(tag, pool)
             if selected_sandbox_id:
+                # 立即更新注册表中的 last_used 时间
+                asyncio.create_task(self._update_registry_last_used(selected_sandbox_id, tag))
                 logger.info(
                     f"Reusing local sandbox {selected_sandbox_id} for tag '{tag}', "
                     f"ref_count={self._ref_counts[selected_sandbox_id]}"
@@ -187,6 +189,8 @@ class SharedSandboxPool:
                 if await self._load_sandbox_from_registry(cross_process_sandbox_id, tag, config, volume_bindings):
                     selected_sandbox_id = await self._select_available_sandbox(tag, pool)
                     if selected_sandbox_id:
+                        # 立即更新注册表中的 last_used 时间
+                        asyncio.create_task(self._update_registry_last_used(selected_sandbox_id, tag))
                         logger.info(
                             f"Reusing cross-process sandbox {selected_sandbox_id} for tag '{tag}', "
                             f"ref_count={self._ref_counts[selected_sandbox_id]}"
@@ -221,6 +225,7 @@ class SharedSandboxPool:
 
                 # 注册到跨进程注册表
                 await self._register_sandbox(sandbox_id, tag, sandbox.container.id if sandbox.container else sandbox_id)
+                # 新创建的sandbox，注册时已经包含了最新的last_used时间，无需再次更新
 
                 logger.info(f"Created new shared sandbox {sandbox_id} for tag '{tag}'")
                 return sandbox_id
@@ -498,15 +503,19 @@ class SharedSandboxPool:
                         registry_data["last_used"] = time.time()
                         with open(registry_file, 'w') as f:
                             json.dump(registry_data, f)
+                        logger.debug(f"Updated registry last_used for sandbox {sandbox_id[:12]}...")
                     except BlockingIOError:
                         # 锁被占用，跳过更新（避免阻塞）
-                        pass
+                        logger.debug(f"Registry file locked for sandbox {sandbox_id[:12]}..., skipping update")
                     finally:
-                        fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+                        try:
+                            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+                        except Exception:
+                            pass
                         lock_file.unlink(missing_ok=True)
-            except Exception:
-                # 如果锁操作失败，直接跳过（避免阻塞）
-                pass
+            except Exception as e:
+                # 如果锁操作失败，记录日志但不阻塞
+                logger.debug(f"Error updating registry last_used for sandbox {sandbox_id[:12]}...: {e}")
         except Exception as e:
             logger.debug(f"Failed to update registry last_used: {e}")
 
