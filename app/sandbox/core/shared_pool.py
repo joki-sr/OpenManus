@@ -174,11 +174,17 @@ class SharedSandboxPool:
             # 1. 先尝试从本地池中获取
             selected_sandbox_id = await self._select_available_sandbox(tag, pool)
             if selected_sandbox_id:
-                # 立即更新注册表中的 last_used 时间
+                # 更新注册表中的 last_used 时间（已在_select_available_sandbox中更新ref_count）
                 asyncio.create_task(self._update_registry_last_used(selected_sandbox_id, tag))
+
+                # 获取跨进程引用计数用于日志
+                registry_info = await self._read_registry_with_ref_count(selected_sandbox_id, tag)
+                cross_process_ref = registry_info.get("ref_count", 0) if registry_info else 0
+
                 logger.info(
                     f"Reusing local sandbox {selected_sandbox_id} for tag '{tag}', "
-                    f"ref_count={self._ref_counts[selected_sandbox_id]}"
+                    f"local_ref_count={self._ref_counts[selected_sandbox_id]}, "
+                    f"cross_process_ref_count={cross_process_ref}"
                 )
                 return selected_sandbox_id
 
@@ -189,11 +195,17 @@ class SharedSandboxPool:
                 if await self._load_sandbox_from_registry(cross_process_sandbox_id, tag, config, volume_bindings):
                     selected_sandbox_id = await self._select_available_sandbox(tag, pool)
                     if selected_sandbox_id:
-                        # 立即更新注册表中的 last_used 时间
+                        # 更新注册表中的 last_used 时间（已在_select_available_sandbox中更新ref_count）
                         asyncio.create_task(self._update_registry_last_used(selected_sandbox_id, tag))
+
+                        # 获取跨进程引用计数用于日志
+                        registry_info = await self._read_registry_with_ref_count(selected_sandbox_id, tag)
+                        cross_process_ref = registry_info.get("ref_count", 0) if registry_info else 0
+
                         logger.info(
                             f"Reusing cross-process sandbox {selected_sandbox_id} for tag '{tag}', "
-                            f"ref_count={self._ref_counts[selected_sandbox_id]}"
+                            f"local_ref_count={self._ref_counts[selected_sandbox_id]}, "
+                            f"cross_process_ref_count={cross_process_ref}"
                         )
                         return selected_sandbox_id
 
@@ -252,15 +264,17 @@ class SharedSandboxPool:
                 self._ref_counts[sandbox_id] = max(0, self._ref_counts[sandbox_id] - 1)
                 self._last_used[sandbox_id] = time.time()
 
-                # 更新注册表中的last_used时间（非阻塞，避免多进程竞争）
+                # 更新注册表中的ref_count和last_used时间（非阻塞，避免多进程竞争）
                 tag = self._sandbox_tags.get(sandbox_id)
                 if tag:
-                    # 使用create_task让更新异步执行，不阻塞release
+                    # 异步更新跨进程引用计数（使用乐观锁）
+                    asyncio.create_task(self._update_registry_ref_count(sandbox_id, tag, -1))
+                    # 异步更新last_used时间
                     asyncio.create_task(self._update_registry_last_used(sandbox_id, tag))
 
                 logger.info(
                     f"Released sandbox {sandbox_id}, "
-                    f"ref_count={self._ref_counts[sandbox_id]}"
+                    f"local_ref_count={self._ref_counts[sandbox_id]}"
                 )
 
                 # Agent进程退出时，关闭本地创建的Docker client（但不清理container）
@@ -301,6 +315,7 @@ class SharedSandboxPool:
         """选择一个可用的sandbox（支持多引用）。
 
         优先选择引用计数最小且仍然运行的sandbox。
+        会检查跨进程引用计数（从注册表读取）。
         """
         invalid_sandboxes = []
         candidates = []
@@ -311,14 +326,28 @@ class SharedSandboxPool:
                 invalid_sandboxes.append(sandbox_id)
                 continue
 
-            current_ref = self._ref_counts.get(sandbox_id, 0)
+            # 获取本地引用计数
+            local_ref = self._ref_counts.get(sandbox_id, 0)
+
+            # 获取跨进程引用计数（从注册表读取）
+            registry_info = await self._read_registry_with_ref_count(sandbox_id, tag)
+            cross_process_ref = registry_info.get("ref_count", 0) if registry_info else 0
+
+            # 使用跨进程引用计数检查限制（更准确）
+            total_ref = max(local_ref, cross_process_ref)
+
             if (
                 self.max_concurrency_per_sandbox is not None
-                and current_ref >= self.max_concurrency_per_sandbox
+                and total_ref >= self.max_concurrency_per_sandbox
             ):
+                logger.debug(
+                    f"Sandbox {sandbox_id[:12]}... exceeds max_concurrency "
+                    f"(local_ref={local_ref}, cross_process_ref={cross_process_ref}, limit={self.max_concurrency_per_sandbox})"
+                )
                 continue
 
-            candidates.append((current_ref, sandbox_id))
+            # 使用本地引用计数作为排序依据（优先选择本地引用少的）
+            candidates.append((local_ref, sandbox_id))
 
         for sandbox_id in invalid_sandboxes:
             await self._remove_sandbox(sandbox_id, tag)
@@ -328,8 +357,14 @@ class SharedSandboxPool:
 
         candidates.sort(key=lambda item: item[0])
         selected_id = candidates[0][1]
+
+        # 更新本地引用计数
         self._ref_counts[selected_id] = self._ref_counts.get(selected_id, 0) + 1
         self._last_used[selected_id] = time.time()
+
+        # 异步更新跨进程引用计数（使用乐观锁）
+        asyncio.create_task(self._update_registry_ref_count(selected_id, tag, +1))
+
         return selected_id
 
     def _is_sandbox_running(self, sandbox: DockerSandbox) -> bool:
@@ -422,37 +457,55 @@ class SharedSandboxPool:
 
             # 添加到本地池
             pool = self._pools[tag]
-            pool[sandbox_id] = sandbox
-            self._ref_counts[sandbox_id] = 0  # 初始为0，会在_select_available_sandbox中增加
-            self._last_used[sandbox_id] = time.time()
-            self._sandbox_tags[sandbox_id] = tag
-
-            logger.info(f"Loaded sandbox {sandbox_id} from cross-process registry for tag '{tag}'")
+            # 如果sandbox已经在本地池中，不要覆盖已有的引用计数
+            if sandbox_id not in pool:
+                pool[sandbox_id] = sandbox
+                # 从注册表读取跨进程引用计数，但本地引用计数从0开始
+                registry_info = await self._read_registry_with_ref_count(sandbox_id, tag)
+                self._ref_counts[sandbox_id] = 0  # 本地引用计数初始为0，会在_select_available_sandbox中增加
+                self._last_used[sandbox_id] = time.time()
+                self._sandbox_tags[sandbox_id] = tag
+                logger.info(
+                    f"Loaded sandbox {sandbox_id} from cross-process registry for tag '{tag}' "
+                    f"(cross_process_ref_count={registry_info.get('ref_count', 0) if registry_info else 0})"
+                )
+            else:
+                # 如果已经在本地池中，只更新sandbox实例（可能容器状态有变化）
+                pool[sandbox_id] = sandbox
+                # 保持已有的本地引用计数，不重置为0
+                logger.info(f"Sandbox {sandbox_id} already in local pool for tag '{tag}', updated instance only")
             return True
         except Exception as e:
             logger.warning(f"Failed to load sandbox from registry: {e}")
             return False
 
     async def _count_sandboxes_for_tag(self, tag: str) -> int:
-        """统计某个tag的sandbox总数（包括本地和注册表中的）。"""
-        local_count = len(self._pools[tag])
+        """统计某个tag的sandbox总数（包括本地和注册表中的）。
 
-        # 统计注册表中的数量
-        registry_count = 0
+        使用union方式统计，避免重复计算。
+        """
+        # 获取本地sandbox ID集合
+        local_sandbox_ids = set(self._pools[tag].keys())
+
+        # 获取注册表中的sandbox ID集合
+        registry_sandbox_ids = set()
         try:
             for registry_file in self._registry_dir.glob(f"{tag}_*.json"):
                 try:
                     with open(registry_file, 'r') as f:
                         registry_data = json.load(f)
+                    sandbox_id = registry_data.get("sandbox_id")
                     container_id = registry_data.get("container_id")
-                    if container_id and await self._verify_container_exists(container_id):
-                        registry_count += 1
+                    if sandbox_id and container_id and await self._verify_container_exists(container_id):
+                        registry_sandbox_ids.add(sandbox_id)
                 except Exception:
                     continue
         except Exception:
             pass
 
-        return max(local_count, registry_count)
+        # 使用union统计唯一sandbox数量（避免重复计算）
+        total_unique_sandboxes = len(local_sandbox_ids | registry_sandbox_ids)
+        return total_unique_sandboxes
 
     async def _register_sandbox(self, sandbox_id: str, tag: str, container_id: str) -> None:
         """注册sandbox到跨进程注册表。"""
@@ -464,6 +517,8 @@ class SharedSandboxPool:
                 "container_id": container_id,
                 "created_at": time.time(),
                 "last_used": time.time(),
+                "ref_count": 1,  # 初始引用计数为1（创建时）
+                "version": 1,   # 版本号（乐观锁）
             }
 
             with open(registry_file, 'w') as f:
@@ -483,8 +538,128 @@ class SharedSandboxPool:
         except Exception as e:
             logger.warning(f"Failed to unregister sandbox from registry: {e}")
 
+    async def _read_registry_with_ref_count(self, sandbox_id: str, tag: str) -> Optional[Dict]:
+        """读取注册表，获取ref_count和version（用于乐观锁）。
+
+        Returns:
+            Dict包含ref_count和version，如果文件不存在则返回None
+        """
+        try:
+            registry_file = self._registry_dir / f"{tag}_{sandbox_id}.json"
+            if not registry_file.exists():
+                return None
+
+            with open(registry_file, 'r') as f:
+                registry_data = json.load(f)
+
+            return {
+                "ref_count": registry_data.get("ref_count", 0),
+                "version": registry_data.get("version", 0),
+                "last_used": registry_data.get("last_used", 0),
+            }
+        except Exception as e:
+            logger.debug(f"Failed to read registry for sandbox {sandbox_id[:12]}...: {e}")
+            return None
+
+    async def _update_registry_ref_count(
+        self,
+        sandbox_id: str,
+        tag: str,
+        delta: int,
+        max_retries: int = 3
+    ) -> bool:
+        """使用乐观锁更新注册表中的ref_count。
+
+        Args:
+            sandbox_id: Sandbox ID
+            tag: Tag
+            delta: 引用计数的变化量（+1表示acquire，-1表示release）
+            max_retries: 最大重试次数（乐观锁冲突时）
+
+        Returns:
+            bool: 是否更新成功
+        """
+        registry_file = self._registry_dir / f"{tag}_{sandbox_id}.json"
+        if not registry_file.exists():
+            logger.warning(f"Registry file not found for sandbox {sandbox_id[:12]}...")
+            return False
+
+        for attempt in range(max_retries):
+            try:
+                # 读取当前值
+                with open(registry_file, 'r') as f:
+                    registry_data = json.load(f)
+
+                old_version = registry_data.get("version", 0)
+                old_ref_count = registry_data.get("ref_count", 0)
+
+                # 计算新值
+                new_ref_count = max(0, old_ref_count + delta)
+                new_version = old_version + 1
+
+                # 写入新值（使用文件锁保护，避免并发写入）
+                lock_file = registry_file.with_suffix('.lock')
+                try:
+                    with open(lock_file, 'w') as lock:
+                        try:
+                            fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+                            # 再次读取，验证版本号（乐观锁检查）
+                            with open(registry_file, 'r') as f:
+                                current_data = json.load(f)
+
+                            if current_data.get("version", 0) != old_version:
+                                # 版本号已变化，说明有其他进程修改了，需要重试
+                                logger.debug(
+                                    f"Version conflict for sandbox {sandbox_id[:12]}... "
+                                    f"(expected {old_version}, got {current_data.get('version', 0)}), retrying..."
+                                )
+                                continue
+
+                            # 版本号匹配，更新数据
+                            registry_data["ref_count"] = new_ref_count
+                            registry_data["version"] = new_version
+                            registry_data["last_used"] = time.time()
+
+                            with open(registry_file, 'w') as f:
+                                json.dump(registry_data, f)
+
+                            logger.debug(
+                                f"Updated registry ref_count for sandbox {sandbox_id[:12]}... "
+                                f"(ref_count: {old_ref_count} -> {new_ref_count}, version: {old_version} -> {new_version})"
+                            )
+                            return True
+
+                        except BlockingIOError:
+                            # 锁被占用，等待一小段时间后重试
+                            await asyncio.sleep(0.01 * (attempt + 1))  # 递增等待时间
+                            continue
+                        finally:
+                            try:
+                                fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+                            except Exception:
+                                pass
+                            lock_file.unlink(missing_ok=True)
+
+                except Exception as e:
+                    logger.debug(f"Error updating registry ref_count for sandbox {sandbox_id[:12]}...: {e}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.01 * (attempt + 1))
+                        continue
+                    return False
+
+            except Exception as e:
+                logger.debug(f"Failed to update registry ref_count for sandbox {sandbox_id[:12]}...: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(0.01 * (attempt + 1))
+                    continue
+                return False
+
+        logger.warning(f"Failed to update registry ref_count for sandbox {sandbox_id[:12]}... after {max_retries} retries")
+        return False
+
     async def _update_registry_last_used(self, sandbox_id: str, tag: str) -> None:
-        """更新注册表中的last_used时间。"""
+        """更新注册表中的last_used时间（非阻塞）。"""
         try:
             registry_file = self._registry_dir / f"{tag}_{sandbox_id}.json"
             if not registry_file.exists():
