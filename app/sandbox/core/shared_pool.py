@@ -212,10 +212,32 @@ class SharedSandboxPool:
             # 3. 检查是否达到最大数量（包括注册表中的）
             total_count = await self._count_sandboxes_for_tag(tag)
             if total_count >= self.max_sandboxes_per_tag:
-                raise RuntimeError(
-                    f"Maximum number of sandboxes ({self.max_sandboxes_per_tag}) "
-                    f"reached for tag '{tag}'"
+                # 达到限制时，不报错，而是尝试复用现有sandbox（即使达到并发限制）
+                logger.info(
+                    f"Maximum number of sandboxes ({self.max_sandboxes_per_tag}) reached for tag '{tag}', "
+                    f"attempting to reuse existing sandbox"
                 )
+                selected_sandbox_id = await self._select_available_sandbox_force(tag, pool)
+                if selected_sandbox_id:
+                    # 更新注册表中的 last_used 时间
+                    asyncio.create_task(self._update_registry_last_used(selected_sandbox_id, tag))
+                    asyncio.create_task(self._update_registry_ref_count(selected_sandbox_id, tag, +1))
+
+                    # 获取跨进程引用计数用于日志
+                    registry_info = await self._read_registry_with_ref_count(selected_sandbox_id, tag)
+                    cross_process_ref = registry_info.get("ref_count", 0) if registry_info else 0
+
+                    logger.info(
+                        f"Reusing existing sandbox {selected_sandbox_id} for tag '{tag}' (at limit), "
+                        f"local_ref_count={self._ref_counts[selected_sandbox_id]}, "
+                        f"cross_process_ref_count={cross_process_ref}"
+                    )
+                    return selected_sandbox_id
+                else:
+                    # 如果没有可用的sandbox（全部失效），仍然创建新的（会超过限制，但总比失败好）
+                    logger.warning(
+                        f"All sandboxes for tag '{tag}' are invalid, creating new one despite limit"
+                    )
 
             # 4. 创建新的sandbox并注册
             try:
@@ -355,6 +377,51 @@ class SharedSandboxPool:
         if not candidates:
             return None
 
+        candidates.sort(key=lambda item: item[0])
+        selected_id = candidates[0][1]
+
+        # 更新本地引用计数
+        self._ref_counts[selected_id] = self._ref_counts.get(selected_id, 0) + 1
+        self._last_used[selected_id] = time.time()
+
+        # 异步更新跨进程引用计数（使用乐观锁）
+        asyncio.create_task(self._update_registry_ref_count(selected_id, tag, +1))
+
+        return selected_id
+
+    async def _select_available_sandbox_force(self, tag: str, pool: Dict[str, DockerSandbox]) -> Optional[str]:
+        """强制选择一个sandbox（忽略并发限制，用于达到max_sandboxes_per_tag时复用）。
+
+        当达到max_sandboxes_per_tag限制时，选择引用计数最小的sandbox来复用，
+        即使它已经达到了max_concurrency_per_sandbox限制。
+        """
+        invalid_sandboxes = []
+        candidates = []
+
+        for sandbox_id, sandbox in pool.items():
+            is_running = self._is_sandbox_running(sandbox)
+            if not is_running:
+                invalid_sandboxes.append(sandbox_id)
+                continue
+
+            # 获取本地引用计数
+            local_ref = self._ref_counts.get(sandbox_id, 0)
+
+            # 获取跨进程引用计数（从注册表读取）
+            registry_info = await self._read_registry_with_ref_count(sandbox_id, tag)
+            cross_process_ref = registry_info.get("ref_count", 0) if registry_info else 0
+
+            # 使用跨进程引用计数作为排序依据（选择引用计数最小的）
+            total_ref = max(local_ref, cross_process_ref)
+            candidates.append((total_ref, sandbox_id))
+
+        for sandbox_id in invalid_sandboxes:
+            await self._remove_sandbox(sandbox_id, tag)
+
+        if not candidates:
+            return None
+
+        # 选择引用计数最小的sandbox
         candidates.sort(key=lambda item: item[0])
         selected_id = candidates[0][1]
 
