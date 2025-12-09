@@ -19,11 +19,19 @@ if not os.path.exists(CSV_PATH):
     print(f"错误：文件不存在：{CSV_PATH}")
     exit(1)
 
+
+
+
 # ---------------------- 配置参数 -----------------------
 csv_filename = os.path.splitext(os.path.basename(CSV_PATH))[0]  # 结果：20251118165602_1
 OUTPUT_IMG = f"/home/zhangsiyi/AgenticAI/OpenManus/test_perf/cocurrent/data/{csv_filename}.png"  # 最终图片路径
 FIG_SIZE = (12, 6)  # 图表尺寸（宽，高）
 DPI = 150  # 图片清晰度（越高越清晰）
+
+# ---------------------- 图片标题配置参数 -----------------------
+parts = os.path.basename(csv_filename).replace(".csv", "").split("_")
+cocurrent_count = int(parts[1])
+aff_mode = parts[2] if len(parts) > 2 else None
 # ----------------------------------------------------------------
 
 # 1. 读取CSV数据（处理可能的编码问题）
@@ -60,7 +68,7 @@ labels = [l.get_label() for l in lines]
 ax1.legend(lines, labels, loc="upper left", fontsize=10)
 
 # 7. 标题和布局调整
-plt.title("Agent concurrent tasks - CPU utilization & memory usage trends", fontsize=14, pad=20)
+plt.title(f"{cocurrent_count} Agents concurrent tasks {aff_mode if aff_mode is not None else ''} - CPU utilization & memory usage trends", fontsize=14, pad=20)
 plt.tight_layout()  # 自动调整布局，避免标签被截断
 
 # 8. 保存图片（支持PNG/JPG/PDF格式）

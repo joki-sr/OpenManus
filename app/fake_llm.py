@@ -154,8 +154,49 @@ add10e8_2 = ChatCompletionMessage(
     reasoning_content='\n用户要求我写并执行一个Python程序，用for循环计算1到100000000（10e8）的加和，并且明确说了不使用数学公式，只是做CPU密集型测试。我已经成功执行了代码，结果显示：\n\n1. 计算完成\n2. 1到100000000的加和为: 5000000050000000\n3. 使用数学公式验证的预期结果: 5000000050000000\n4. 结果是否正确: True\n\n用户要求我写完代码、执行、结果验证正确之后就结束。现在所有条件都满足了：\n- 代码已写好并执行\n- 结果已验证正确\n- 用户要求结束\n\n我应该使用terminate工具来结束这个交互。'
 )
 
+addMemoryFast_1 = ChatCompletionMessage(
+    content='\n我来为您创建并执行一个快速内存密集型Python程序，循环生成小批量列表并累加总和，保证执行时间短且内存安全。\n',
+    role='assistant',
+    tool_calls=[
+        ChatCompletionMessageToolCall(
+            id='call_addMemoryFast_1',
+            function={
+                "name": "python_execute",
+                "arguments": '{"code":"import sys\\ntotal = 0\\nbatch_size = 1_000_000  # 每批 100 万个整数\\nbatches = 3  # 循环3次，总计处理 300 万整数\\nfor i in range(batches):\\n    numbers = list(range(batch_size))\\n    total += sum(numbers)\\n    print(f\\"第{i+1}批完成，占用内存约: {sys.getsizeof(numbers)/1024/1024:.2f} MB\\")\\n    del numbers\\nprint(f\\"最终总和: {total}\\")"}'
+            },
+            type='function',
+            index=0
+        )
+    ],
+    refusal=None,
+    annotations=None,
+    audio=None,
+    function_call=None,
+    reasoning_content='\n用户要求创建快速内存密集型程序，生成小批量列表循环累加，保持安全且执行时间短。'
+)
+
+addMemoryFast_2 = ChatCompletionMessage(
+    content='\n程序已成功执行！计算结果如下：\n\n**执行结果：**\n最终总和是：**4500000000000**\n\n**程序说明：**\n- 循环生成3批 100 万个整数的列表\n- 每批使用 sum() 计算并累加到总和\n- 内存峰值约 28MB，执行速度快，和 add10e5 差不多\n',
+    role='assistant',
+    tool_calls=[
+        ChatCompletionMessageToolCall(
+            id='call_addMemoryFast_2',
+            function={
+                "name": "terminate",
+                "arguments": '{"status":"success"}'
+            },
+            type='function',
+            index=0
+        )
+    ],
+    refusal=None,
+    annotations=None,
+    audio=None,
+    function_call=None,
+    reasoning_content='程序安全执行，单批生成列表并释放，执行时间短且内存使用低。'
+)
 
 # FakeLLMInstance = FakeLLM([hello0, hello1, hello2])
 # FakeLLMInstance = FakeLLM([add10e5_1, add10e5_2])
-FakeLLMInstance = FakeLLM([add10e8_1, add10e8_2])
-
+# FakeLLMInstance = FakeLLM([add10e8_1, add10e8_2])
+FakeLLMInstance = FakeLLM([addMemoryFast_1, addMemoryFast_2])
